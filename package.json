@@ -1,0 +1,13 @@
+{
+  "name": "mastery-map-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "从宏观诊断到微观下钻的自适应学习地图 Demo",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

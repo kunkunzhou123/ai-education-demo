@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="从宏观筛查到微观下钻的自适应学习地图">
+  <title>MasteryMap · 自适应学习地图</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="MasteryMap 首页">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span>MasteryMap</span>
+      </a>
+      <div class="stage-track" aria-label="诊断流程">
+        <span data-stage="setup" class="stage-dot active">设定主题</span>
+        <span data-stage="diagnose" class="stage-dot">自适应诊断</span>
+        <span data-stage="result" class="stage-dot">学习地图</span>
+      </div>
+      <button id="restartTop" class="text-button" hidden>重新诊断</button>
+    </header>
+
+    <main>
+      <section id="setupView" class="view setup-view">
+        <div class="setup-copy">
+          <p class="eyebrow">先定位，再教学</p>
+          <h1>你不需要从第一章重新学起。</h1>
+          <p class="lead">系统先从领域全貌提问，再沿着答错或不确定的分支下钻，最终只安排你真正欠缺的知识。</p>
+          <div class="method-flow" aria-label="方法流程">
+            <div><span>01</span><strong>宏观筛查</strong><small>覆盖领域主干</small></div>
+            <i aria-hidden="true">→</i>
+            <div><span>02</span><strong>微观下钻</strong><small>定位具体断点</small></div>
+            <i aria-hidden="true">→</i>
+            <div><span>03</span><strong>生成地图</strong><small>先修前置，再补核心</small></div>
+          </div>
+        </div>
+
+        <form id="topicForm" class="topic-panel">
+          <label for="topicInput">想诊断哪个领域？</label>
+          <div class="topic-row">
+            <input id="topicInput" name="topic" value="传统机器学习" maxlength="80" autocomplete="off">
+            <button class="primary-button" type="submit">开始诊断</button>
+          </div>
+          <p id="topicHint" class="field-hint">“传统机器学习”可直接离线体验；其他主题会调用已配置的 DeepSeek。</p>
+          <div class="sample-topics" aria-label="示例主题">
+            <span>示例</span>
+            <button type="button" data-topic="传统机器学习">传统机器学习</button>
+            <button type="button" data-topic="深度学习基础">深度学习基础</button>
+            <button type="button" data-topic="概率论与数理统计">概率论与数理统计</button>
+          </div>
+          <div class="assessment-note">
+            <strong>这不是一张固定试卷。</strong>
+            <p>每道题都对应知识图上的节点。宏观题决定往哪条分支继续；微观题判断断点是概念、方法选择还是实际应用。</p>
+          </div>
+        </form>
+      </section>
+
+      <section id="diagnoseView" class="view diagnose-view" hidden>
+        <aside class="diagnose-aside">
+          <p class="eyebrow">实时定位</p>
+          <h2 id="diagnoseTopic">传统机器学习</h2>
+          <div class="progress-block">
+            <div class="progress-label"><span id="phaseLabel">宏观筛查</span><span id="progressCount">1 / 6</span></div>
+            <div class="progress-track"><span id="progressBar"></span></div>
+          </div>
+          <div id="branchTrail" class="branch-trail"></div>
+          <p class="aside-note">答案和信心会共同决定是否继续下钻。答对但不确定，也可能触发一道验证题。</p>
+        </aside>
+
+        <div class="question-stage">
+          <div class="question-meta">
+            <span id="questionStage" class="pill">宏观题</span>
+            <span id="questionNode">监督学习</span>
+          </div>
+          <h2 id="questionStem"></h2>
+          <div id="options" class="options" role="radiogroup" aria-label="答案选项"></div>
+          <div class="confidence-row">
+            <div><strong>你对这个答案有多确定？</strong><small>不确定会触发更细的验证题</small></div>
+            <div id="confidenceButtons" class="confidence-buttons" role="radiogroup" aria-label="答案信心">
+              <button type="button" data-confidence="1">猜的</button>
+              <button type="button" data-confidence="2">有点把握</button>
+              <button type="button" data-confidence="3" class="selected">比较确定</button>
+              <button type="button" data-confidence="4">非常确定</button>
+            </div>
+          </div>
+          <div class="question-actions">
+            <button id="quitDiagnosis" class="secondary-button" type="button">返回主题</button>
+            <button id="submitAnswer" class="primary-button" type="button" disabled>提交答案</button>
+          </div>
+          <div id="feedback" class="feedback" aria-live="polite" hidden></div>
+        </div>
+      </section>
+
+      <section id="resultView" class="view result-view" hidden>
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow">诊断完成</p>
+            <h1 id="resultTitle">你的“传统机器学习”学习地图</h1>
+            <p id="resultSummary" class="lead"></p>
+          </div>
+          <button id="restartResult" class="secondary-button" type="button">重新诊断</button>
+        </div>
+
+        <div class="result-grid">
+          <section class="map-panel">
+            <div class="panel-title"><h2>知识地图</h2><div class="legend"><span class="mastered">已掌握</span><span class="learning">待巩固</span><span class="weak">薄弱</span><span class="unknown">未深入</span></div></div>
+            <div id="knowledgeMap" class="knowledge-map"></div>
+          </section>
+
+          <aside class="insight-panel">
+            <div class="mastery-ring" id="masteryRing"><strong id="overallMastery">0%</strong><span>整体掌握</span></div>
+            <div>
+              <p class="eyebrow">诊断结论</p>
+              <h2 id="priorityTitle">优先补齐基础断点</h2>
+              <p id="priorityText"></p>
+            </div>
+            <div class="evidence-list" id="evidenceList"></div>
+          </aside>
+        </div>
+
+        <section class="path-panel">
+          <div class="panel-title"><div><p class="eyebrow">个性化方案</p><h2>建议学习路径</h2></div><span>按薄弱程度与重要性排序 · 点击开始学习</span></div>
+          <div id="learningPath" class="learning-path"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
