@@ -20,6 +20,7 @@ function loadLocalEnv() {
 }
 
 loadLocalEnv();
+const { handleDialogue } = require('./lib/dialogue');
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -61,6 +62,27 @@ function validatePlan(plan) {
   if (plan.nodes.length < 6 || plan.questions.length < 8) {
     throw new Error("生成的问题数量不足");
   }
+  const ids = new Set();
+  for (const n of plan.nodes) {
+    if (!n || typeof n.id !== 'string' || !/^[a-zA-Z0-9_-]{1,60}$/.test(n.id) || ids.has(n.id) || typeof n.label !== 'string' || typeof n.description !== 'string' || !Number.isInteger(n.importance) || n.importance < 1 || n.importance > 5) throw new Error('知识节点格式或编号无效');
+    ids.add(n.id);
+  }
+  for (const n of plan.nodes) {
+    const visited = new Set([n.id]);
+    let parent = n.parentId;
+    while (parent !== null && parent !== undefined) {
+      if (!ids.has(parent) || visited.has(parent)) throw new Error('知识树存在无效父节点或循环');
+      visited.add(parent); parent = plan.nodes.find(item => item.id === parent).parentId;
+    }
+  }
+  const qids = new Set();
+  for (const q of plan.questions) {
+    if (!q || typeof q.id !== 'string' || qids.has(q.id) || !ids.has(q.nodeId) || !['macro','micro'].includes(q.stage) || !Number.isInteger(q.level) || q.level < 1 || q.level > 3 || typeof q.stem !== 'string' || !Array.isArray(q.options) || q.options.length !== 4 || q.options.some(o=>typeof o !== 'string') || !Number.isInteger(q.answer) || q.answer < 0 || q.answer > 3 || typeof q.explanation !== 'string') throw new Error('诊断题格式无效');
+    qids.add(q.id);
+  }
+  for (const n of plan.nodes) {
+    if (!plan.questions.some(q => q.nodeId === n.id && q.stage === (n.parentId ? 'micro' : 'macro'))) throw new Error('诊断题未覆盖全部节点');
+  }
   return plan;
 }
 
@@ -74,10 +96,11 @@ async function generatePlan(topic) {
   "nodes": [{"id":"唯一英文短id","parentId":null或父id,"label":"知识点","description":"一句话能力目标","importance":1到5}],
   "questions": [{"id":"唯一id","nodeId":"对应知识点id","stage":"macro或micro","level":1到3,"stem":"题干","options":["选项A","选项B","选项C","选项D"],"answer":0到3,"explanation":"为什么"}]
 }
-要求：每个根节点至少 1 道 macro 题，每个子节点至少 1 道 micro 题；总题数 14-22；答案位置要分散；所有内容使用简体中文。`;
+要求：每个根节点至少 1 道 macro 题，每个子节点至少 1 道 micro 题；总题数 15-28，必须覆盖全部节点；答案位置要分散；所有内容使用简体中文。`;
 
   const response = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
+    signal: AbortSignal.timeout(90000),
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${key}`
@@ -139,15 +162,19 @@ async function lessonApi(req, res) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
+  if (url.pathname.startsWith('/api/dialogue/')) return handleDialogue(req, res, url.pathname);
   if (req.method === 'POST' && url.pathname === '/api/lesson') return lessonApi(req, res);
   if (req.method === "POST" && url.pathname === "/api/generate-plan") {
     return handleApi(req, res);
   }
   if (req.method !== "GET" && req.method !== "HEAD") return sendJson(res, 405, { error: "Method not allowed" });
 
-  const relative = url.pathname === "/" ? "index.html" : decodeURIComponent(url.pathname.slice(1));
+  let relative;
+  try { relative = url.pathname === "/" ? "dialogue.html" : decodeURIComponent(url.pathname.slice(1)); }
+  catch { return sendJson(res, 400, { error: 'Invalid URL' }); }
   const filePath = path.normalize(path.join(publicDir, relative));
-  if (!filePath.startsWith(publicDir)) return sendJson(res, 403, { error: "Forbidden" });
+  const fromPublic = path.relative(publicDir, filePath);
+  if (fromPublic.startsWith('..') || path.isAbsolute(fromPublic)) return sendJson(res, 403, { error: "Forbidden" });
   fs.readFile(filePath, (error, content) => {
     if (error) return sendJson(res, 404, { error: "Not found" });
     res.writeHead(200, { "Content-Type": MIME[path.extname(filePath)] || "application/octet-stream" });

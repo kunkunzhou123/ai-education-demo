@@ -61,6 +61,7 @@ const state = {
 };
 
 const $ = id => document.getElementById(id);
+const escapeText = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const views = { setup: $("setupView"), diagnose: $("diagnoseView"), result: $("resultView") };
 
 function setView(name) {
@@ -106,7 +107,7 @@ async function begin(topic) {
 }
 
 function startPlan(plan) {
-  learning = { records: {}, lessons: {} };
+  learning = { records: {}, lessons: {}, reviewAttempts: [] };
   lessonPanel.hidden = true;
   activeLesson = null;
   state.plan = plan;
@@ -145,7 +146,7 @@ function renderQuestion() {
   const keys = ["A", "B", "C", "D", "E"];
   $("options").innerHTML = q.options.map((option, index) => `
     <button type="button" class="option" data-answer="${index}" role="radio" aria-checked="false">
-      <span class="option-key">${keys[index]}</span><span>${option}</span>
+      <span class="option-key">${keys[index]}</span><span>${escapeText(option)}</span>
     </button>`).join("");
   $("options").querySelectorAll(".option").forEach(button => {
     button.addEventListener("click", () => selectAnswer(Number(button.dataset.answer)));
@@ -171,14 +172,13 @@ function renderTrail(currentNodeId) {
     const result = state.macroResults.get(root.id);
     const current = root.id === currentNodeId || children(root.id).some(child => child.id === currentNodeId);
     const suffix = result ? (result.needsDrill ? " · 待下钻" : " · 初步通过") : "";
-    return `<div class="trail-item ${current ? "current" : ""}">${root.label}${suffix}</div>`;
+    return `<div class="trail-item ${current ? "current" : ""}">${escapeText(root.label)}${suffix}</div>`;
   });
   $("branchTrail").innerHTML = rootItems.join("");
 }
 
 function scoreAttempt(correct, confidence) {
-  if (correct) return [0, .62, .72, .84, .92][confidence];
-  return [0, .42, .35, .25, .15][confidence];
+  return correct ? .65 : .2;
 }
 
 function submitCurrent() {
@@ -198,7 +198,8 @@ function submitCurrent() {
     confidence: state.confidence,
     score: scoreAttempt(correct, state.confidence),
     selected: state.selectedAnswer,
-    answer: q.answer
+    answer: q.answer,
+    answeredAt: new Date().toISOString()
   };
   state.attempts.push(attempt);
   if (q.stage === "macro") {
@@ -214,7 +215,7 @@ function submitCurrent() {
   const feedback = $("feedback");
   feedback.hidden = false;
   feedback.classList.toggle("bad", !correct);
-  feedback.innerHTML = `<strong>${correct ? "判断正确" : "这里暴露了一个值得下钻的点"}</strong><br>${q.explanation}`;
+  feedback.innerHTML = `<strong>${correct ? "判断正确" : "这里暴露了一个值得下钻的点"}</strong><br>${escapeText(q.explanation)}`;
   $("submitAnswer").textContent = state.index === state.queue.length - 1 ? (state.phase === "macro" ? "进入薄弱分支" : "生成学习地图") : "下一题";
 }
 
@@ -236,15 +237,15 @@ function finishPhase() {
 }
 
 function nodeScore(node) {
-  if (learning.records[node.id]) return learning.records[node.id].score;
-  const own = state.attempts.filter(a => a.nodeId === node.id);
+  const own = [...state.attempts, ...(learning.reviewAttempts || [])].filter(a => a.nodeId === node.id);
   if (own.length) return own.reduce((sum, a) => sum + a.score, 0) / own.length;
   const childScores = children(node.id).map(nodeScore).filter(value => value !== null);
   return childScores.length ? childScores.reduce((a, b) => a + b, 0) / childScores.length : null;
 }
 
 function finalRootScore(root) {
-  const macro = learning.records[root.id]?.score ?? state.macroResults.get(root.id)?.score ?? null;
+  const own = [...state.attempts, ...(learning.reviewAttempts || [])].filter(a=>a.nodeId === root.id);
+  const macro = own.length ? own.reduce((sum,a)=>sum+a.score,0)/own.length : null;
   const assessedChildren = children(root.id).map(nodeScore).filter(value => value !== null);
   if (!assessedChildren.length) return macro;
   const micro = assessedChildren.reduce((a, b) => a + b, 0) / assessedChildren.length;
@@ -286,7 +287,7 @@ function showResults() {
 
   const wrongAttempts = state.attempts.filter(a => !a.correct).slice(0, 3);
   $("evidenceList").innerHTML = wrongAttempts.length
-    ? wrongAttempts.map(a => `<div class="evidence"><strong>${nodeById(a.nodeId)?.label || "知识点"}</strong><br>回答错误，信心 ${a.confidence}/4，说明需要重新建立判断依据。</div>`).join("")
+    ? wrongAttempts.map(a => `<div class="evidence"><strong>${escapeText(nodeById(a.nodeId)?.label || "知识点")}</strong><br>回答错误，信心 ${a.confidence}/4，说明需要重新建立判断依据。</div>`).join("")
     : `<div class="evidence"><strong>高置信正确</strong><br>本轮未出现明确错误；地图保留未深入节点，避免把“没有考到”误判为“已掌握”。</div>`;
 
   const pathNodes = priority.length ? priority.slice(0, 6) : roots().slice(0, 3).map(node => ({ node, score: finalRootScore(node) }));
@@ -297,15 +298,17 @@ function showResults() {
       : item.score < .5
         ? "先复述核心概念，再用反例辨析边界，最后完成一道基础应用题。"
         : "完成方法对比题和小型案例，把零散理解连接成可迁移能力。";
-    return `<article class="path-step"><strong>${item.node.label}</strong><p>${action}</p><span>${type} · 建议 ${index < 2 ? "30" : "45"} 分钟</span><p><button class="primary-button" data-learn="${encodeURIComponent(item.node.id)}">开始学习</button></p></article>`;
+    return `<article class="path-step"><strong>${escapeText(item.node.label)}</strong><p>${action}</p><span>${type} · 建议 ${index < 2 ? "30" : "45"} 分钟</span><p><button class="primary-button" data-learn="${escapeText(encodeURIComponent(item.node.id))}">开始学习</button></p></article>`;
   }).join("");
   saveLearning();
 }
 
 function nodeCard(node, score) {
-  const status = statusFor(score);
+  const evidenceCount = [...state.attempts,...(learning.reviewAttempts || [])].filter(a=>a.nodeId === node.id).length;
+  const fullyCovered = children(node.id).every(child => nodeScore(child) !== null);
+  const status = score >= .78 && (evidenceCount < 2 || !fullyCovered) ? 'learning' : statusFor(score);
   const label = score === null ? "未测" : `${Math.round(score * 100)}%`;
-  return `<div class="map-node ${status}" data-score="${label}"><strong>${node.label}</strong><small>${node.description}</small><button class="text-button" data-learn="${encodeURIComponent(node.id)}">学习 / 复测</button></div>`;
+  return `<div class="map-node ${status}" data-score="${label}"><strong>${escapeText(node.label)}</strong><small>${escapeText(node.description)}</small><button class="text-button" data-learn="${escapeText(encodeURIComponent(node.id))}">学习 / 复测</button></div>`;
 }
 
 function collectPriorityNodes() {
@@ -347,14 +350,13 @@ $("quitDiagnosis").addEventListener("click", reset);
 $("restartResult").addEventListener("click", reset);
 $("restartTop").addEventListener("click", reset);
 
-let learning = { records: {}, lessons: {} };
+let learning = { records: {}, lessons: {}, reviewAttempts: [] };
 let activeLesson = null;
 const lessonPanel = document.createElement('section');
 lessonPanel.id = 'lessonPanel';
 lessonPanel.className = 'path-panel lesson-panel';
 lessonPanel.hidden = true;
 $('resultView').append(lessonPanel);
-const escapeText = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function saveLearning() {
   try { localStorage.setItem('masterymap-learning-v2', JSON.stringify({ plan: state.plan, attempts: state.attempts, macroResults: [...state.macroResults], learning })); } catch {}
@@ -369,11 +371,12 @@ async function openLesson(id, regenerate = false) {
   lessonPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   try {
     if (!learning.lessons[id] || regenerate) {
-      const evidence = state.attempts.filter(a => a.nodeId === id || a.nodeId === node.parentId).map(a => ({ ...a, question: state.plan.questions.find(q => q.id === a.questionId) }));
+      const evidence = [...state.attempts,...(learning.reviewAttempts || [])].filter(a => a.nodeId === id || a.nodeId === node.parentId || children(id).some(c=>c.id === a.nodeId)).map(a => ({ ...a, question: a.question || state.plan.questions.find(q => q.id === a.questionId) }));
       const response = await fetch('/api/lesson', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic: state.plan.topic, node, evidence, previousReview: learning.records[id] || null, previousQuestions: learning.lessons[id]?.quiz || [] }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '生成失败');
       learning.lessons[id] = data;
+      if (regenerate && learning.records[id]) learning.records[id].needsNew = true;
       saveLearning();
     }
     if (activeLesson === id) renderLesson(id);
@@ -401,11 +404,14 @@ function renderLesson(id) {
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
     const a = document.createElement('a'); a.href = url; a.download = '学习讲义.txt'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  $('newLesson').onclick = () => { if (learning.records[id]) learning.records[id].needsNew = true; openLesson(id, true); };
+  $('newLesson').onclick = () => openLesson(id, true);
   $('lessonQuiz').onsubmit = event => {
     event.preventDefault();
     const answers = new FormData(event.target);
     const correct = lesson.quiz.filter((q, i) => Number(answers.get('review-' + i)) === q.answer).length;
+    if (learning.records[id] && !learning.records[id].needsNew) return;
+    learning.reviewAttempts ||= [];
+    lesson.quiz.forEach((q,i)=>{ const selected=Number(answers.get('review-'+i)); learning.reviewAttempts.push({nodeId:id,stage:'posttest',correct:selected===q.answer,score:selected===q.answer ? .85 : .2,selected,answer:q.answer,question:q,answeredAt:new Date().toISOString()}); });
     learning.records[id] = { score: correct === 2 ? .85 : correct === 1 ? .6 : .3, correct, reviewedAt: new Date().toISOString(), needsNew: false, errors: lesson.quiz.filter((q, i) => Number(answers.get('review-' + i)) !== q.answer).map(q => ({ stem: q.stem, chosen: q.options[Number(answers.get('review-' + lesson.quiz.indexOf(q)))], explanation: q.explanation })) };
     event.target.querySelector('button').disabled = true;
     showResults();
@@ -424,6 +430,10 @@ try {
   if (saved?.plan && saved?.learning) {
     const resume = document.createElement('button'); resume.className = 'secondary-button'; resume.type = 'button'; resume.textContent = '继续上次学习：' + saved.plan.topic;
     $('topicForm').append(resume);
-    resume.onclick = () => { state.plan = saved.plan; state.attempts = saved.attempts; state.macroResults = new Map(saved.macroResults); learning = saved.learning; showResults(); };
+    resume.onclick = () => {
+      state.plan = saved.plan; state.attempts = saved.attempts.map(a=>({...a,score:scoreAttempt(a.correct,a.confidence)})); state.macroResults = new Map(saved.macroResults.map(([id,a])=>[id,{...a,score:scoreAttempt(a.correct,a.confidence)}])); learning = saved.learning;
+      if (!learning.reviewAttempts) learning.reviewAttempts = Object.entries(learning.records).flatMap(([nodeId,r])=>Array.from({length:2},(_,i)=>({nodeId,stage:'posttest',correct:i<r.correct,score:i<r.correct ? .85 : .2,answeredAt:r.reviewedAt,legacy:true})));
+      showResults();
+    };
   }
 } catch {}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MasteryMap · 对话中看见理解</title>
+  <meta name="description" content="用解释、迁移和独立验证，了解过拟合与泛化的真实理解。">
+  <link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/dialogue.css">
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/"><span class="brand-mark">M</span>MasteryMap</a><span class="dialogue-brand-note">对话中看见理解</span><a class="text-button" href="/index.html">原版学习地图 ↗</a></header>
+  <main class="dialogue-main">
+    <section id="welcome" class="dialogue-welcome">
+      <div><p class="eyebrow">小主题 · 深诊断</p><h1>把理解说出来，<br>再换个情境试试。</h1><p class="lead">从“过拟合与泛化”出发，解释你的判断。系统记录回答中的依据，逐步安排追问、讲解和独立验证。</p><div class="method-flow"><div><span>01</span><strong>解释理由</strong><small>看见思路</small></div><i>→</i><div><span>02</span><strong>换个情境</strong><small>检查迁移</small></div><i>→</i><div><span>03</span><strong>撤去帮助</strong><small>独立验证</small></div></div><p class="welcome-caption">泛化差距 · 复杂度与噪声 · 早停 · 正则化 · 数据划分</p></div>
+      <form id="startForm" class="topic-panel"><p class="eyebrow">本次学习</p><h2>过拟合与泛化</h2><p>最多 10 轮诊断。可以说“不知道”，也可以在诊断时主动请求帮助；受助表现会单独记录。</p><label class="config-label" for="participantId">匿名学习者代号 <small>可选</small></label><input id="participantId" name="participantId" maxlength="50" pattern="[A-Za-z0-9_-]{1,50}" autocomplete="off" placeholder="仅英文字母、数字、下划线或连字符"><label class="config-label" for="strategy">提问方式</label><select id="strategy" name="strategy"><option value="adaptive">根据回答选择追问</option><option value="fixed">按固定顺序提问（研究对照）</option></select><button id="startSession" type="submit" class="primary-button">开始对话诊断 →</button><button id="resumeSession" type="button" class="secondary-button" hidden>继续上次对话</button><p class="field-hint">没有配置模型时使用离线规则体验。页面会标明评估来源；证据分不代表经过验证的掌握概率。</p></form>
+    </section>
+    <div id="notice" class="notice" role="alert" hidden></div>
+    <section id="workspace" hidden></section>
+    <section id="blindReview" hidden></section>
+  </main><script src="/dialogue.js" defer></script>
+</body></html>

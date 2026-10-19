@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+<title id="title">MasteryMap education harness</title><desc id="desc">学生输入经过幂等事务、评估员、规划员和证据验证后暂停。原始证据、支持条件、运行轨迹和人工标签分别保存。</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#52754a"/></marker><style>text{font-family:system-ui,'PingFang SC','Microsoft YaHei',sans-serif;fill:#183424}.h{font-size:24px;font-weight:700}.t{font-size:17px}.s{font-size:14px;fill:#526657}.box{fill:white;stroke:#aac09e;stroke-width:2}.line{fill:none;stroke:#52754a;stroke-width:2;marker-end:url(#arrow)}</style></defs>
+<rect width="1200" height="680" fill="#f4f7ef"/><text x="40" y="48" class="h">从学生原话到可追溯的理解证据</text><text x="40" y="78" class="s">模型提出受限动作；宿主校验权限、预算、阶段与提交条件；每轮暂停等待学生。</text>
+<rect class="box" x="40" y="120" width="195" height="110" rx="14"/><text class="t" x="62" y="155">学生回答 / 请求帮助</text><text class="s" x="62" y="184">题目 ID · requestId</text><text class="s" x="62" y="207">原话 · 实际支持条件</text>
+<rect class="box" x="280" y="120" width="210" height="110" rx="14"/><text class="t" x="300" y="155">输入与会话边界</text><text class="s" x="300" y="184">幂等键 · 文件锁 · 版本</text><text class="s" x="300" y="207">写入 run_started / 草稿</text>
+<rect class="box" x="535" y="120" width="250" height="110" rx="14"/><text class="t" x="555" y="155">证据评估员</text><text class="s" x="555" y="184">角色技能 · 有界模型工具循环</text><text class="s" x="555" y="207">record_assessment · 引用校验</text>
+<rect class="box" x="830" y="120" width="325" height="110" rx="14"/><text class="t" x="850" y="155">提问规划员 / 固定基线</text><text class="s" x="850" y="184">审核候选题 · 五能力覆盖 · 十轮上限</text><text class="s" x="850" y="207">choose_question · 阶段隔离</text>
+<path class="line" d="M235 175H275"/><path class="line" d="M490 175H530"/><path class="line" d="M785 175H825"/>
+<rect class="box" x="535" y="290" width="620" height="108" rx="14"/><text class="t" x="557" y="324">证据更新与原子提交 → 暂停</text><text class="s" x="557" y="352">同阶段完整解释 + 迁移均独立正确；受助成功单独保留；未知不当错误</text><text class="s" x="557" y="378">截止时间栅栏 · 保存 answer_assessed · 重试复用检查点</text>
+<path class="line" d="M990 230V285"/>
+<rect class="box" x="40" y="290" width="450" height="108" rx="14"/><text class="t" x="62" y="324">上下文与运行约束</text><text class="s" x="62" y="352">原话落盘；模型只读有限近期对话及有来源的账本</text><text class="s" x="62" y="378">调用 / 步骤 / 时间硬限；Token 估算与报告量分开</text><path class="line" d="M490 344H530"/>
+<rect class="box" x="40" y="465" width="350" height="140" rx="14"/><text class="t" x="62" y="501">学习与独立验证</text><text class="s" x="62" y="530">初始诊断 A → 定向讲解 / 帮助</text><text class="s" x="62" y="557">新题复测 B → 到期延时检查 C</text><text class="s" x="62" y="584">帮助条件不能被新阶段隐去</text>
+<rect class="box" x="425" y="465" width="350" height="140" rx="14"/><text class="t" x="447" y="501">可复核的事件日志</text><text class="s" x="447" y="530">原话 · 提示 · 任务版本 · 执行轨迹</text><text class="s" x="447" y="557">故障检查点 · 成功事件 · 链校验</text><text class="s" x="447" y="584">文件级单机事务；不宣称防恶意改写</text>
+<rect class="box" x="810" y="465" width="345" height="140" rx="14"/><text class="t" x="832" y="501">独立标注与研究导出</text><text class="s" x="832" y="530">不显示自动标签的专用接口与页面</text><text class="s" x="832" y="557">教师分歧保留 · 按学习者分组切分</text><text class="s" x="832" y="584">判分一致性 ≠ 已证明长期学习效果</text>
+<path class="line" d="M845 398V430H215V460"/><path class="line" d="M845 430H600V460"/><path class="line" d="M845 430H980V460"/>
+<text class="s" x="40" y="648">无密钥时是明确标记的规则演示；真实模型、模拟接口测试与真实学生实验分别报告。</text>
+</svg>

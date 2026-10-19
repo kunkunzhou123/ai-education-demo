@@ -1,11 +1,15 @@
 {
   "name": "mastery-map-demo",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "从宏观诊断到微观下钻的自适应学习地图 Demo",
+  "description": "具有受控 agent harness、理解证据、独立标注和阶段验证的 AI 教育 Demo",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js"
+    "check": "node scripts/check.js",
+    "test": "node --test test/*.test.js",
+    "evaluate": "node scripts/evaluate.js",
+    "dataset": "node scripts/build-dataset.js",
+    "recover": "node scripts/recover.js"
   },
   "engines": {
     "node": ">=18"
